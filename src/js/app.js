@@ -31,19 +31,17 @@ class App extends LitElement {
         width: 100%;
       }
 
+      .wrap {
+        max-height: 600px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-radius: 5px;
+      }
+
       .table {
-        margin-top: 15px;
         background-color: #343434;
         padding: 5px;
-        width: fit-content;
-        border-radius: 5px;
-        position: relative;
-        overflow-y: auto;
-        max-height: 600px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        border-collapse: collapse;
       }
 
       .line.top {
@@ -53,12 +51,19 @@ class App extends LitElement {
       .line.top.fixed {
         position: fixed;
         width: auto;
-        top: 82px;
+        top: 77px;
+        padding: 0 !important;
+        opacity: .3;
+        border: none !important;
       }
 
       .line {
         padding: 10px 0;
         width: 100%;
+      }
+
+      .line:not(.top):hover {
+        background-color: #444;
       }
 
       .line:not(:last-child) {
@@ -69,6 +74,7 @@ class App extends LitElement {
         text-align: center;
         padding: 10px;
         height: 100%;
+        min-width: 20px;
       }
 
       .line:not(.top) .value.result {
@@ -80,7 +86,6 @@ class App extends LitElement {
       }
 
       .classes {
-        margin-top: 15px;
         background-color: #343434;
         padding: 5px;
         border-radius: 5px;
@@ -119,6 +124,7 @@ class App extends LitElement {
 
       .container {
         display: flex;
+        margin-top: 15px;
       }
 
       .howtouse {
@@ -218,32 +224,31 @@ class App extends LitElement {
       <div class='parsed'>${this.makeCool()}</div>
       <div class='error ${this.error === '' ? 'empty' : 'fill'}'>${this.error}</div>
       <div class='container'>
-        <div class='table'>
+        <div class='wrap table-wrap'><table class='table'>
           ${!this.rpn.str.length ? html`
             <span class='item'>empty</span>
           ` : html`
-            <div class='line top fixed'>
+            <tr class='line top fixed'>
               ${this.rpn.vars.map(v => html`
-                <span class='value'>${v}</span>
+                <td class='value'>${v}</td>
               `)}
-              <span class='value result'>result</span>
-            </div>
-            <div class='line top'>
+            </tr>
+            <tr class='line top'>
               ${this.rpn.vars.map(v => html`
-                <span class='value'>${v}</span>
+                <td class='value'>${v}</td>
               `)}
-              <span class='value result'>result</span>
-            </div>
+              <td class='value result'>result</td>
+            </tr>
             ${this.rpn.table.map(res => html`
-              <div class='line'>
+              <tr class='line'>
                 ${res.map((el, i) => html`
-                  <span class='value ${i === res.length - 1 ? 'result' : ''} ${!!el}'
-                  >${el}</span>
+                  <td class='value ${i === res.length - 1 ? 'result' : ''} ${!!el}'
+                  >${el}</td>
                 `)}
-              </div>
+              </tr>
             `)}
           `}
-        </div>
+        </table></div>
 
         <div class='right-side'>
           <div class='classes'>
