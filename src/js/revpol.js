@@ -16,7 +16,7 @@ class RPN {
     this.opearions = {
       and: ['and', '*',  '&' ],
       or:  ['or',  '+',  '||'],
-      xor: ['xor',   ,   '^' ],
+      xor: ['xor', '⊕',  '^' ],
       imp: ['imp', '->',     ],
       eq:  ['eq',  '~',  '=='],
       shf: ['shf', '|',  '#' ],
@@ -258,9 +258,6 @@ class RPN {
         requireVar = false
         this.error("missing variable for operator " + last);
       }
-
-      if (!lastWasOper && curIsVar)
-        this.error("missin operator between variables");
 
       if (curIsBiOp && !lastWasVar && last !== ')')
         this.error("missing varaible for operator " + word);

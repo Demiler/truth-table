@@ -121,7 +121,7 @@ class App extends LitElement {
         display: flex;
       }
 
-      .tooltip {
+      .howtouse {
         margin-top: 15px;
         background-color: #343434;
         border-radius: 5px;
@@ -132,9 +132,10 @@ class App extends LitElement {
         text-align: center;
         transition: .3s;
         transform-origin: right top;
+        display: none;
       }
 
-      .tooltip:hover {
+      .howtouse:hover {
         transform: scale(2);
       }
 
@@ -170,6 +171,21 @@ class App extends LitElement {
       .parsed:empty {
         opacity: 0;
       }
+
+      .tooltip {
+        font-size: 14px;
+        padding: 5px;
+        border-radius: 5px;
+        box-shadow: 0 0 2px 2px #000000a0;
+        background-color: #242424;
+        position: absolute;
+        top: attr('x');
+        right: attr('y');
+      }
+
+      .tooltip[hidden] {
+        display: none;
+      }
     `;
   }
 
@@ -184,10 +200,14 @@ class App extends LitElement {
       setTimeout(() => this.error = '', 3000);
     }
     this.timeout = 200;
+    this.expl = { T0: '', T1: '', L: '', S: '', M: '' }
   }
 
   firstUpdated() {
     this.input = this.shadowRoot.querySelector('input');
+    this.tooltip = this.shadowRoot.querySelector('.tooltip');
+
+    this.tooltip.hidden = true;
     this.input.value = 'a + b';
     this.parse();
   }
@@ -195,7 +215,7 @@ class App extends LitElement {
   render() {
     return html`
       <input class='expr-input' @input=${this.parse}>
-      <div class='parsed'>${this.rpn.parsedStr && this.rpn.parsedStr.join(' ')}</div>
+      <div class='parsed'>${this.makeCool()}</div>
       <div class='error ${this.error === '' ? 'empty' : 'fill'}'>${this.error}</div>
       <div class='container'>
         <div class='table'>
@@ -233,13 +253,16 @@ class App extends LitElement {
               ${Object.entries(this.classes).map(cls => html`
                 <span class='item ${cls[1]}'>
                   <span class='name ${cls[0]}'>${cls[0]}</span>
-                  <span class='value ${cls[1]}'>${cls[1]}</span>
+                  <span class='value ${cls[1]}' 
+                  @mouseover=${(e) => this.showtip(cls[0], e)}
+                  @mouseout=${this.hidetip}
+                  >${cls[1]}</span>
                 </span>
               `)}
             `}
             </div>
 
-            <div class='tooltip'>
+            <div class='howtouse'>
               <span class='title'>How to Use</span>
               <span class='text'>
                 <div>Just enter an expressin.</div>
@@ -257,7 +280,27 @@ class App extends LitElement {
             </div>
           </div>
       </div>
+      <div class='tooltip'>${this.tip}</div>
     `;
+  }
+
+  makeCool() {
+    if (!this.rpn.parsedStr) return;
+    let res = this.rpn.parsedStr.map(word => {
+      switch (word) {
+        case 'and': word = '&&'; break;
+        case 'or' : word = '||'; break;
+        case 'xor': word = '⊕';  break;
+        case 'imp': word = '→';  break;
+        case 'eq' : word = '≡';  break;
+        case 'shf': word = '↓'; break;
+        case 'pir': word = '│'; break;
+        case 'not': word = '!'; break;
+      }
+      return word;
+    }).join(' ');
+    res = res.replace(/! /g, '!');
+    return res;
   }
 
   compareSet(a, b, len = a.length) {
@@ -282,7 +325,7 @@ class App extends LitElement {
     return bits;
   }
 
-  makeThing() {
+  isLinear() {
     const jeg = this.rpn.vector.slice();
     let half = jeg.length / 2;
 
@@ -295,13 +338,16 @@ class App extends LitElement {
     }
 
     for (let i = 0; i < jeg.length; i++) {
-      if (jeg[i] && this.countBits(i) > 1)
+      if (jeg[i] && this.countBits(i) > 1) {
+        this.expl.L = `Because of set number ${i}: ${jeg[i]}`;
         return false;
+      }
     }
+    this.expl.L = 'this function is linear';
     return true;
   }
 
-  makeAnotherThing() {
+  isMonotone() {
     const { table } = this.rpn;
     let mon = 0;
 
@@ -311,32 +357,56 @@ class App extends LitElement {
         const len = table[i].length - 1;
         const comp = this.compareSet(table[i], table[j], len);
         if (comp > 0) {
-          if (table[i][len] < table[j][len]) return false;
+          if (table[i][len] < table[j][len]) {
+            this.expl.M = `Set ${i} > set ${j} but res of ${i} < ${j}`;
+            return false;
+          }
         }
         else if (comp < 0) {
-          if (table[i][len] > table[j][len]) return false;
+          if (table[i][len] > table[j][len]) {
+            this.expl.M = `Set ${i} < set ${j} but res of ${i} > ${j}`;
+            return false;
+          }
         }
       }
     }
+    this.expl.M = 'This function is monotone';
     return true;
   }
 
-  anotherThing() {
+  isS() {
     const { vector } = this.rpn;
     const len = vector.length;
     for (let i = 0; i < len / 2; i++)
-      if (vector[i] === vector[len - i - 1])
+      if (vector[i] === vector[len - i - 1]) {
+        this.expl.S = `result of set ${i} == ${len - i - 1}`;
         return false;
+      }
+    
+    this.expl.S = 'This is self-dual function';
     return true;
+  }
+
+  isT0() {
+    const res = this.rpn.table[0].every(el => el === 0);
+    this.expl.T0 = `Result of the first set is equals ${!res | 0}`;
+    return res;
+  }
+
+  isT1() {
+    const res = 
+      this.rpn.table[this.rpn.table.length - 1].every(el => el === 1);
+    this.expl.T1 = `Result of the last set is equals ${res | 0}`;
+    return res; 
   }
 
   fillClasses() {
     this.classes = {
-      T0: this.rpn.table[0].every(el => el === 0),
-      T1: this.rpn.table[this.rpn.table.length - 1].every(el => el === 1),
-      L: this.makeThing(),
-      S: this.anotherThing(),
-      M: this.makeAnotherThing(),
+      T0: this.isT0(),
+      T1: this.isT1(),
+      L: this.isLinear(),
+      S: this.isS(),
+      M: this.isMonotone(),
     }
   }
 
@@ -349,9 +419,20 @@ class App extends LitElement {
     }, this.timeout);
   }
 
+  showtip(whatClass, e) {
+    this.tooltip.style = `top: ${e.y + 20}px; left: ${e.x - 150}px`;
+    this.tooltip.hidden = false;
+    this.tip = this.expl[whatClass];
+  }
+
+  hidetip() {
+    this.tooltip.hidden = true;
+  }
+
   static get properties() {
     return {
       error: { type: String },
+      tip: { type: String },
     }
   }
 }
