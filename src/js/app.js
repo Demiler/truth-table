@@ -6,6 +6,9 @@ class App extends LitElement {
     return css`
       :host {
         font-size: 24px;
+        width: 700px;
+        margin: 0 auto;
+        display: block;
       }
 
       ::-webkit-scrollbar {
@@ -22,13 +25,25 @@ class App extends LitElement {
           background-color: #707070;
       }
 
+      ::selection {
+        border-radius: 10px;
+        background-color: #c090ce;
+      }
+
       .expr-input {
         background-color: #343434;
         color: #eee;
         border-radius: 5px;
         border: none;
         font-size: 24px;
-        width: 100%;
+        width: -webkit-fill-available;
+        outline: none;
+        padding: 5px 10px;
+      }
+
+      .expr-input:focus,
+      .expr-input:hover {
+        background-color: #404040;
       }
 
       .wrap {
@@ -50,11 +65,17 @@ class App extends LitElement {
 
       .line.top.fixed {
         position: fixed;
-        width: auto;
         top: 77px;
         padding: 0 !important;
-        opacity: .3;
+        opacity: 0;
         border: none !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .line.top.fixed .value {
+        display: inline-block;
       }
 
       .line {
@@ -80,6 +101,11 @@ class App extends LitElement {
       .line:not(.top) .value.result {
         border-left: 2px solid #232323;
       }
+
+      .line:not(.top) .value.num {
+        border-right: 2px solid #232323;
+      }
+
 
       .right-side {
         margin-left: auto;
@@ -212,6 +238,8 @@ class App extends LitElement {
   firstUpdated() {
     this.input = this.shadowRoot.querySelector('input');
     this.tooltip = this.shadowRoot.querySelector('.tooltip');
+    //this.top = 
+    //this.top.style = "opacity: 0";
 
     this.tooltip.hidden = true;
     this.input.value = 'a + b';
@@ -220,27 +248,36 @@ class App extends LitElement {
 
   render() {
     return html`
-      <input class='expr-input' @input=${this.parse}>
+      <input spellcheck="false" class='expr-input' @input=${this.parse}>
       <div class='parsed'>${this.makeCool()}</div>
       <div class='error ${this.error === '' ? 'empty' : 'fill'}'>${this.error}</div>
       <div class='container'>
-        <div class='wrap table-wrap'><table class='table'>
+
+        ${!this.rpn.str.length ? html`` : html`
+        <div class='line top fixed'>
+          <span class='value num'>#</span>
+          ${this.rpn.vars.map(v => html`
+            <span class='value'>${v}</span>
+          `)}
+          <span class='value result'>result</span>
+        </div>
+        `}
+
+        <div class='wrap table-wrap' @scroll=${this.showTop}>
+          <table class='table'>
           ${!this.rpn.str.length ? html`
             <span class='item'>empty</span>
           ` : html`
-            <tr class='line top fixed'>
-              ${this.rpn.vars.map(v => html`
-                <td class='value'>${v}</td>
-              `)}
-            </tr>
             <tr class='line top'>
+              <td class='value num'>#</td>
               ${this.rpn.vars.map(v => html`
                 <td class='value'>${v}</td>
               `)}
               <td class='value result'>result</td>
             </tr>
-            ${this.rpn.table.map(res => html`
+            ${this.rpn.table.map((res, i) => html`
               <tr class='line'>
+                <td class='value num'>${i}</td>
                 ${res.map((el, i) => html`
                   <td class='value ${i === res.length - 1 ? 'result' : ''} ${!!el}'
                   >${el}</td>
@@ -432,6 +469,18 @@ class App extends LitElement {
 
   hidetip() {
     this.tooltip.hidden = true;
+  }
+
+  showTop(event) {
+    if (!this.top)
+      this.top = this.shadowRoot.querySelector('.top.fixed');
+    if (!this.wrap)
+      this.wrap = this.shadowRoot.querySelector('.wrap');
+    if (this.wrap.scrollTop > 50)
+      this.top.style = `opacity: .3; width: ${this.wrap.offsetWidth}px`;
+    else
+      this.top.style = "opacity: 0";
+    console.log(event);
   }
 
   static get properties() {

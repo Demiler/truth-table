@@ -140,10 +140,10 @@ class RPN {
           default:
             que.push(word);
             if (this.vars.includes(word) === false) {
-              this.vars.push(word);
               this.varCount++;
               if (this.varCount > this.maxVarCount)
                 return this.error('too much variables!');
+              this.vars.push(word);
             }
         }
       }
