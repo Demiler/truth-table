@@ -480,7 +480,6 @@ class App extends LitElement {
       this.top.style = `opacity: .3; width: ${this.wrap.offsetWidth}px`;
     else
       this.top.style = "opacity: 0";
-    console.log(event);
   }
 
   static get properties() {
