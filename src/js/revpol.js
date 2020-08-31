@@ -18,9 +18,9 @@ class RPN {
       or:  ['or',  '+',  '||'],
       xor: ['xor', '⊕',  '^' ],
       imp: ['imp', '->',     ],
-      eq:  ['eq',  '~',  '=='],
+      eq:  ['eq',  '~',  '==', '≡'],
       shf: ['shf', '|',  '#' ],
-      pir: ['pir', '\/', '$' ],
+      pir: ['pir', '\\|/', '$' ],
       not: ['not', '!',      ],
     }
     this.str = str;
@@ -40,13 +40,14 @@ class RPN {
   getPrior(operation) {
     switch (operation) {
       case 'not':
+        return 4;
       case 'pir':
       case 'shf':
-      case 'eq':
         return 3;
       case 'and':
       case 'imp':
         return 2;
+      case 'eq':
       case 'xor':
       case 'or':
         return 1;
@@ -63,7 +64,8 @@ class RPN {
   }
 
   isVariable(str) {
-    return /[a-zA-Z]/.test(str);
+    const res = /^[a-zA-Z]$/.test(str);
+    return res;
   }
 
   isLiteral(str) {
@@ -80,31 +82,33 @@ class RPN {
 
     for (const word of expr) {
       const oper = this.isOperation(word);
-      if (oper) res.push(oper);
+      if (oper) {
+        if (oper === 'not' && this.isVariable(last))
+          res.push('and');
+        res.push(oper);
+        last = oper;
+      }
       else {
         for (const ch of word) {
           const oper = this.isOperation(ch);
-          if (oper) res.push(oper);
-          else {
-            const lastWasBr       = (last === '(' || last === ')');
-            const lastWasOper     = this.isOperation(last);
-            const lastWasVar      = (last && !lastWasBr && !lastWasOper);
-            const curIsVar        = (ch !== '(' && ch !== ')');
-            const varBeforeOpenBr = (lastWasVar && ch === '(');
-            const varAfterClsdBr  = (last === ')' && curIsVar);
-            const varNearBracket  = (varBeforeOpenBr || varAfterClsdBr);
-            const bracketsMult    = (last === ')' && ch === '(');
-            const varsMult        = lastWasVar && curIsVar;
 
-            if (varNearBracket || bracketsMult || varsMult)
-              res.push('and');
+          const lastWasVar      = this.isVariable(last);
+          const curIsVar        = this.isVariable(ch);
+          const curIsNotOper    = oper === 'not';
+          const varBeforeOpenBr = (lastWasVar && ch === '(');
+          const varAfterClsdBr  = (last === ')' && curIsVar);
+          const varNearBracket  = (varBeforeOpenBr || varAfterClsdBr);
+          const bracketsMult    = (last === ')' && ch === '(');
+          const varsMult        = lastWasVar && curIsVar;
+          const notMult         = lastWasVar && curIsNotOper;
 
-            res.push(ch);
-          }
+          if (varNearBracket || bracketsMult || varsMult || notMult)
+            res.push('and');
+
+          res.push(oper ? oper : ch);
           last = ch;
         }
       }
-      last = word;
     }
 
     this.parsedStr = res;
@@ -138,6 +142,11 @@ class RPN {
             stack.pop();
             break;
           default:
+            if (!this.isVariable(word)) {
+              this.error(`Unknown symbol: '${word}'`);
+              break
+            }
+
             que.push(word);
             if (this.vars.includes(word) === false) {
               this.varCount++;
@@ -163,7 +172,7 @@ class RPN {
     while (!stack.empty()) {
       const top = stack.pop();
       const oper = this.isOperation(top);
-      if (oper === 'not') 
+      if (oper === 'not')
         que.push(!que.pop() | 0); //| 0 to keep 0/1 notation
       else if (oper) {
         const b = que.pop();
@@ -222,9 +231,8 @@ class RPN {
     for (const word of parsedStr) {
       if (word === '(') bracketsCounter++;
       else if (word === ')') bracketsCounter--;
-      
-      const lastWasBr   = (last === '(' || last === ')');
-      const lastWasVar  = (last && !lastWasBr);
+
+      const lastWasVar  = this.isVariable(last);
       const lastWasOper = (this.isOperation(last));
       const lastWasBiOp = (lastWasOper && lastWasOper !== 'not');
       const lastWasUnOp = (lastWasOper === 'not');
@@ -237,14 +245,17 @@ class RPN {
       if (requireBiOper && (curIsBiOp || curIsBr))
         requireBiOper = false;
 
-      if (requireSecondVar && lastWasBiOp && 
+      if (requireSecondVar && lastWasBiOp &&
          (curIsVar || curIsBr || curIsUnOp))
         requireSecondVar = false;
 
       if (requireVar && (curIsVar || curIsBr))
         requireVar = false;
 
-      if (requireBiOper) { 
+      if (last === '(' && word === ')')
+        this.error('empty brackets');
+
+      if (requireBiOper) {
         requireBiOper = false;
         this.error("missing binary operator for " + last);
       }
@@ -293,4 +304,4 @@ class RPN {
   }
 }
 
-module.exports = { RPN };
+module.exports = { RPN }

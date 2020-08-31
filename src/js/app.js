@@ -30,6 +30,34 @@ class App extends LitElement {
         background-color: #c090ce;
       }
 
+      [data-title]:hover:after {
+        opacity: 1;
+        transition: all 0.1s ease 0.5s;
+        visibility: visible;
+      }
+
+      [data-title]:after {
+        content: attr(data-title);
+
+        font-size: 14px;
+        padding: 8px;
+        border-radius: 5px;
+        box-shadow: 0 0 2px 2px #00000080;
+        background-color: #242424;
+
+        position: absolute;
+        top: 2px;
+        left: 100%;
+        white-space: nowrap;
+        opacity: 0;
+        z-index: 2;
+        visibility: hidden;
+      }
+
+      [data-title] {
+        position: relative;
+      }
+
       .expr-input {
         background-color: #343434;
         color: #eee;
@@ -280,6 +308,7 @@ class App extends LitElement {
                 <td class='value num'>${i}</td>
                 ${res.map((el, i) => html`
                   <td class='value ${i === res.length - 1 ? 'result' : ''} ${!!el}'
+                   data-title=${this.rpn.vars[i] ? this.rpn.vars[i] : 'res' }
                   >${el}</td>
                 `)}
               </tr>
@@ -330,13 +359,13 @@ class App extends LitElement {
     if (!this.rpn.parsedStr) return;
     let res = this.rpn.parsedStr.map(word => {
       switch (word) {
-        case 'and': word = '&&'; break;
+        case 'and': word = '•'; break;
         case 'or' : word = '||'; break;
         case 'xor': word = '⊕';  break;
         case 'imp': word = '→';  break;
         case 'eq' : word = '≡';  break;
-        case 'shf': word = '↓'; break;
-        case 'pir': word = '│'; break;
+        case 'shf': word = '│'; break;
+        case 'pir': word = '↓'; break;
         case 'not': word = '!'; break;
       }
       return word;
