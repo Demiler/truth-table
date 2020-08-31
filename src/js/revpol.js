@@ -94,6 +94,8 @@ class RPN {
 
           const lastWasVar      = this.isVariable(last);
           const curIsVar        = this.isVariable(ch);
+          const curIsLit        = this.isLiteral(ch);
+          const curIsBr         = (ch === '(' || ch === ')');
           const curIsNotOper    = oper === 'not';
           const varBeforeOpenBr = (lastWasVar && ch === '(');
           const varAfterClsdBr  = (last === ')' && curIsVar);
@@ -101,6 +103,11 @@ class RPN {
           const bracketsMult    = (last === ')' && ch === '(');
           const varsMult        = lastWasVar && curIsVar;
           const notMult         = lastWasVar && curIsNotOper;
+
+          if (!curIsVar && !oper && !curIsBr && !curIsLit) {
+            this.error(`unknown symbol '${word}'`);
+            break;
+          }
 
           if (varNearBracket || bracketsMult || varsMult || notMult)
             res.push('and');
@@ -232,13 +239,13 @@ class RPN {
       if (word === '(') bracketsCounter++;
       else if (word === ')') bracketsCounter--;
 
-      const lastWasVar  = this.isVariable(last);
+      const lastWasVar  = this.isVariable(last) || this.isLiteral(last);
       const lastWasOper = (this.isOperation(last));
       const lastWasBiOp = (lastWasOper && lastWasOper !== 'not');
       const lastWasUnOp = (lastWasOper === 'not');
       const curIsBr     = (word === '(' || word === ')');
       const curIsOper   = (this.isOperation(word));
-      const curIsVar    = (!curIsBr && !curIsOper);
+      const curIsVar    = this.isVariable(word) || this.isLiteral(word);
       const curIsUnOp   = (curIsOper === 'not');
       const curIsBiOp   = (curIsOper && curIsOper !== 'not');
 
@@ -273,6 +280,9 @@ class RPN {
       if (curIsBiOp && !lastWasVar && last !== ')')
         this.error("missing varaible for operator " + word);
 
+      if (!curIsVar && !curIsOper && !curIsBr)
+        this.error(`unknown symbol '${word}'`);
+
       if (curIsBiOp)
         requireSecondVar = true;
 
@@ -294,12 +304,13 @@ class RPN {
     this.err = undefined;
     this.str = str;
     this.fixString();
+    if (this.err) return this.parsedStr = [ 'error' ];
     this.checkForErrors();
-    if (this.err) return;
+    if (this.err) return this.parsedStr = [ 'error' ];
     this.makeRPN();
-    if (this.err) return;
+    if (this.err) return this.parsedStr = [ 'error' ];
     this.calculateAll();
-    if (this.err) return;
+    if (this.err) return this.parsedStr = [ 'error' ];
     return this.table;
   }
 }
